@@ -1,7 +1,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -19,11 +19,13 @@ def get_stats(
     strategy: str | None = None,
     db: Session = Depends(get_db),
 ):
+    # Closed trades count on the day they were exited; open trades on the day they were entered.
+    day = func.coalesce(Trade.exit_date, Trade.entry_date)
     query = select(Trade)
     if start:
-        query = query.where(Trade.trade_date >= start)
+        query = query.where(day >= start)
     if end:
-        query = query.where(Trade.trade_date <= end)
+        query = query.where(day <= end)
     if strategy:
         query = query.where(Trade.strategy == strategy)
     return compute_stats(db.scalars(query).all())

@@ -25,7 +25,9 @@ class Trade(Base):
     position_size: Mapped[float] = mapped_column(Float)
     stop_loss: Mapped[float | None] = mapped_column(Float)
     take_profit: Mapped[float | None] = mapped_column(Float)
-    trade_date: Mapped[date] = mapped_column(Date, index=True)
+    fees: Mapped[float] = mapped_column(Float, default=0, server_default="0")
+    entry_date: Mapped[date] = mapped_column(Date, index=True)
+    exit_date: Mapped[date | None] = mapped_column(Date, index=True)  # set together with exit_price
     strategy: Mapped[str | None] = mapped_column(String(50), index=True)
     notes: Mapped[str | None] = mapped_column(Text)
     emotion_before: Mapped[str | None] = mapped_column(String(30))

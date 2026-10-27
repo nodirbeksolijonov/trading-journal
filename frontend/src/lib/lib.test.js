@@ -28,7 +28,14 @@ describe('format', () => {
 describe('tradeMetrics', () => {
   it('matches the backend for a long winner', () => {
     const m = tradeMetrics({ side: 'long', entry: 100, exit: 110, size: 10, stop: 95, takeProfit: 115 })
-    expect(m).toEqual({ pnl: 100, rMultiple: 2, risk: 50, plannedRR: 3 })
+    expect(m).toEqual({ grossPnl: 100, pnl: 100, rMultiple: 2, risk: 50, plannedRR: 3 })
+  })
+
+  it('takes fees out of P&L and R', () => {
+    const m = tradeMetrics({ side: 'long', entry: 100, exit: 110, size: 10, stop: 95, takeProfit: null, fees: 10 })
+    expect(m.grossPnl).toBe(100)
+    expect(m.pnl).toBe(90)
+    expect(m.rMultiple).toBeCloseTo(1.8)
   })
 
   it('flips direction for shorts', () => {
@@ -39,7 +46,7 @@ describe('tradeMetrics', () => {
 
   it('returns nulls for an open trade without a stop', () => {
     const m = tradeMetrics({ side: 'long', entry: 100, exit: null, size: 1, stop: null, takeProfit: null })
-    expect(m).toEqual({ pnl: null, rMultiple: null, risk: null, plannedRR: null })
+    expect(m).toEqual({ grossPnl: null, pnl: null, rMultiple: null, risk: null, plannedRR: null })
   })
 })
 

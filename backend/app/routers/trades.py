@@ -33,10 +33,10 @@ def list_trades(
     if strategy:
         query = query.where(Trade.strategy.ilike(f"%{strategy.strip()}%"))
     if start:
-        query = query.where(Trade.trade_date >= start)
+        query = query.where(Trade.entry_date >= start)
     if end:
-        query = query.where(Trade.trade_date <= end)
-    return db.scalars(query.order_by(Trade.trade_date.desc(), Trade.id.desc())).all()
+        query = query.where(Trade.entry_date <= end)
+    return db.scalars(query.order_by(Trade.entry_date.desc(), Trade.id.desc())).all()
 
 
 @router.post("", response_model=TradeRead, status_code=status.HTTP_201_CREATED)

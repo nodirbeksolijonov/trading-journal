@@ -4,14 +4,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import Base, engine
+from app.migrate import upgrade_db
 from app.routers import stats, trades
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Fine for the MVP; switch to Alembic migrations before moving to Postgres.
-    Base.metadata.create_all(bind=engine)
+    upgrade_db()
     yield
 
 

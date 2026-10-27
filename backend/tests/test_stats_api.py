@@ -6,10 +6,10 @@ def test_empty_stats(client):
 
 
 def test_stats_summary_curve_and_calendar(client, make_trade):
-    make_trade(trade_date="2026-10-01", exit_price=110)  # +100, +2R
-    make_trade(trade_date="2026-10-01", exit_price=95)  # -50, -1R
-    make_trade(trade_date="2026-10-02", side="short", stop_loss=105, take_profit=85, exit_price=90)  # +100, +2R
-    make_trade(trade_date="2026-10-03", exit_price=None)  # open, ignored in stats
+    make_trade(entry_date="2026-10-01", exit_price=110)  # +100, +2R
+    make_trade(entry_date="2026-10-01", exit_price=95)  # -50, -1R
+    make_trade(entry_date="2026-10-02", side="short", stop_loss=105, take_profit=85, exit_price=90)  # +100, +2R
+    make_trade(entry_date="2026-10-03", exit_price=None)  # open, ignored in stats
 
     s = client.get("/api/stats").json()
     summary = s["summary"]
@@ -59,7 +59,25 @@ def test_near_zero_pnl_is_never_negative_zero(client, make_trade):
 
 
 def test_stats_date_filter(client, make_trade):
-    make_trade(trade_date="2026-09-01", exit_price=110)
-    make_trade(trade_date="2026-10-01", exit_price=95)
+    make_trade(entry_date="2026-09-01", exit_price=110)
+    make_trade(entry_date="2026-10-01", exit_price=95)
     s = client.get("/api/stats", params={"start": "2026-10-01"}).json()
     assert s["summary"]["total_pnl"] == -50
+
+
+def test_stats_use_exit_date_and_net_pnl(client, make_trade):
+    # Entered in September, closed in October: P&L belongs to the exit day.
+    make_trade(entry_date="2026-09-28", exit_date="2026-10-02", exit_price=110, fees=10)
+    make_trade(entry_date="2026-10-05", exit_price=None)  # open, counted by entry date
+
+    s = client.get("/api/stats").json()
+    assert s["summary"]["total_pnl"] == 90
+    assert s["summary"]["total_fees"] == 10
+    assert s["summary"]["avg_r"] == 1.8
+    assert s["equity_curve"][0]["date"] == "2026-10-02"
+    assert s["daily_pnl"] == [{"date": "2026-10-02", "pnl": 90, "trades": 1}]
+
+    october = client.get("/api/stats", params={"start": "2026-10-01"}).json()["summary"]
+    assert (october["closed_trades"], october["open_trades"]) == (1, 1)
+    september = client.get("/api/stats", params={"end": "2026-09-30"}).json()["summary"]
+    assert september["total_trades"] == 0

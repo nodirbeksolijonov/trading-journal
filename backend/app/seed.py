@@ -4,7 +4,8 @@ import random
 import sys
 from datetime import date, timedelta
 
-from app.database import Base, SessionLocal, engine
+from app.database import SessionLocal
+from app.migrate import upgrade_db
 from app.models import Side, Trade
 
 SYMBOLS = {"AAPL": 190, "TSLA": 240, "NVDA": 120, "SPY": 520, "BTCUSD": 65000}
@@ -12,7 +13,7 @@ STRATEGIES = ["breakout", "pullback", "reversal", "range"]
 EMOTIONS = ["calm", "confident", "anxious", "fomo", "greedy", "fearful", "frustrated", "neutral"]
 
 
-def make_trade(day: date) -> Trade:
+def make_trade(entry_day: date) -> Trade:
     symbol, base = random.choice(list(SYMBOLS.items()))
     side = random.choice(list(Side))
     entry = round(base * random.uniform(0.95, 1.05), 2)
@@ -24,6 +25,9 @@ def make_trade(day: date) -> Trade:
     outcome_r = random.choice([-1, -1, -1, -0.5, 0, 0.5, 1, 2, 2, 3])
     exit_price = round(entry + direction * risk * outcome_r, 2)
     size = round(1000 / risk, 4) if symbol != "BTCUSD" else round(100 / risk, 4)
+    # Held 0-5 days, never past today; fees about 0.05% of notional.
+    exit_day = min(entry_day + timedelta(days=random.randint(0, 5)), date.today())
+    fees = round(entry * size * 0.0005, 2)
     return Trade(
         symbol=symbol,
         side=side,
@@ -32,7 +36,9 @@ def make_trade(day: date) -> Trade:
         position_size=size,
         stop_loss=stop,
         take_profit=target,
-        trade_date=day,
+        fees=fees,
+        entry_date=entry_day,
+        exit_date=exit_day,
         strategy=random.choice(STRATEGIES),
         notes="Sample trade",
         emotion_before=random.choice(EMOTIONS),
@@ -41,7 +47,7 @@ def make_trade(day: date) -> Trade:
 
 
 def main(count: int = 60) -> None:
-    Base.metadata.create_all(bind=engine)
+    upgrade_db()
     start = date.today() - timedelta(days=90)
     with SessionLocal() as db:
         for _ in range(count):

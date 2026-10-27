@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from collections.abc import Callable, Iterable
+from datetime import date
 
 from app.models import Side, Trade
 
@@ -15,22 +16,40 @@ def _direction(side: Side) -> int:
     return 1 if side == Side.LONG else -1
 
 
-def calc_pnl(side: Side, entry: float, exit: float | None, size: float) -> float | None:
+def calc_pnl(
+    side: Side, entry: float, exit: float | None, size: float, fees: float = 0
+) -> float | None:
+    """Net P&L: price move times size, minus fees."""
     if exit is None:
         return None
-    return (exit - entry) * size * _direction(side)
+    return (exit - entry) * size * _direction(side) - fees
 
 
 def calc_r_multiple(
-    side: Side, entry: float, exit: float | None, stop: float | None
+    side: Side,
+    entry: float,
+    exit: float | None,
+    stop: float | None,
+    size: float,
+    fees: float = 0,
 ) -> float | None:
-    """Result in units of initial risk: +2R means the trade made twice what it risked."""
+    """Net P&L in units of initial risk: +2R means the trade made twice what it risked."""
     if exit is None or stop is None:
         return None
-    risk_per_unit = abs(entry - stop)
-    if risk_per_unit == 0:
+    risk = abs(entry - stop) * size
+    if risk == 0:
         return None
-    return (exit - entry) * _direction(side) / risk_per_unit
+    return calc_pnl(side, entry, exit, size, fees) / risk
+
+
+def validate_exit(exit_price: float | None, entry_date: date, exit_date: date | None) -> None:
+    """Raise ValueError unless exit price and exit date are given together, in order."""
+    if exit_price is not None and exit_date is None:
+        raise ValueError("Exit date is required when the trade has an exit price")
+    if exit_price is None and exit_date is not None:
+        raise ValueError("Exit date needs an exit price (leave both empty for an open trade)")
+    if exit_date is not None and exit_date < entry_date:
+        raise ValueError("Exit date can't be before the entry date")
 
 
 def validate_levels(
@@ -74,20 +93,22 @@ def _breakdown(
     return sorted(result, key=lambda g: g["total_pnl"], reverse=True)
 
 
+def trade_pnl(t: Trade) -> float | None:
+    return calc_pnl(t.side, t.entry_price, t.exit_price, t.position_size, t.fees)
+
+
+def trade_r(t: Trade) -> float | None:
+    return calc_r_multiple(t.side, t.entry_price, t.exit_price, t.stop_loss, t.position_size, t.fees)
+
+
 def compute_stats(trades: Iterable[Trade]) -> dict:
     trades = list(trades)
+    # P&L is realised on the exit date, so the curve and calendar are ordered by it.
     closed = sorted(
         (t for t in trades if t.exit_price is not None),
-        key=lambda t: (t.trade_date, t.id),
+        key=lambda t: (t.exit_date, t.id),
     )
-    rows = [
-        (
-            t,
-            calc_pnl(t.side, t.entry_price, t.exit_price, t.position_size),
-            calc_r_multiple(t.side, t.entry_price, t.exit_price, t.stop_loss),
-        )
-        for t in closed
-    ]
+    rows = [(t, trade_pnl(t), trade_r(t)) for t in closed]
 
     overall = _performance(rows)
     losses = sum(1 for _, pnl, _ in rows if pnl < 0)
@@ -100,14 +121,14 @@ def compute_stats(trades: Iterable[Trade]) -> dict:
         equity_curve.append(
             {
                 "trade_id": t.id,
-                "date": t.trade_date,
+                "date": t.exit_date,
                 "symbol": t.symbol,
                 "pnl": round2(pnl),
                 "cumulative_pnl": round2(cumulative),
             }
         )
-        daily[t.trade_date]["pnl"] += pnl
-        daily[t.trade_date]["trades"] += 1
+        daily[t.exit_date]["pnl"] += pnl
+        daily[t.exit_date]["trades"] += 1
 
     return {
         "summary": {
@@ -119,6 +140,7 @@ def compute_stats(trades: Iterable[Trade]) -> dict:
             "breakeven": len(closed) - overall["wins"] - losses,
             "win_rate": overall["win_rate"],
             "total_pnl": overall["total_pnl"],
+            "total_fees": round2(sum(t.fees for t in closed)),
             "avg_r": overall["avg_r"],
         },
         "equity_curve": equity_curve,

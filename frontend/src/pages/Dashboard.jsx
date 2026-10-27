@@ -5,7 +5,7 @@ import EquityChart from '../components/EquityChart.jsx'
 import PnlCalendar from '../components/PnlCalendar.jsx'
 import StatCard from '../components/StatCard.jsx'
 import { api } from '../lib/api.js'
-import { fmtPct, fmtR, fmtSignedMoney, pnlClass } from '../lib/format.js'
+import { fmtMoney, fmtPct, fmtR, fmtSignedMoney, pnlClass } from '../lib/format.js'
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null)
@@ -39,7 +39,12 @@ export default function Dashboard() {
           value={fmtPct(s.win_rate)}
           sub={`${s.wins}W · ${s.losses}L · ${s.breakeven} BE`}
         />
-        <StatCard label="Total P&L" value={fmtSignedMoney(s.total_pnl)} tone={pnlClass(s.total_pnl)} />
+        <StatCard
+          label="Total P&L"
+          value={fmtSignedMoney(s.total_pnl)}
+          tone={pnlClass(s.total_pnl)}
+          sub={`net of ${fmtMoney(s.total_fees)} fees`}
+        />
         <StatCard label="Average R" value={fmtR(s.avg_r)} tone={pnlClass(s.avg_r)} />
         <StatCard
           label="Trades"

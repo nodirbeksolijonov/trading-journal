@@ -15,13 +15,34 @@ python3 -m venv .venv
 
 Set `DATABASE_URL` to use another database (e.g. PostgreSQL later).
 
+### Database migrations
+
+The schema is managed with Alembic and upgraded automatically when the API starts.
+After changing `app/models.py`, create a migration and review it before committing:
+
+```bash
+.venv/bin/alembic revision --autogenerate -m "describe change"
+.venv/bin/alembic upgrade head      # or just restart the API
+```
+
 ### API
 | Method | Path | |
 |---|---|---|
-| GET | /api/trades?symbol=&strategy=&start=&end= | list (newest first) |
+| GET | /api/trades?symbol=&strategy=&start=&end= | list, newest entry first (dates filter on entry date) |
 | POST | /api/trades | create |
 | GET/PUT/DELETE | /api/trades/{id} | read / replace / delete |
-| GET | /api/stats?start=&end=&strategy= | summary, equity curve, daily P&L |
+| GET | /api/stats?start=&end=&strategy= | summary, equity curve, daily P&L, breakdowns (dates filter on exit date) |
 
-P&L = (exit − entry) × size (reversed for shorts). R = P&L per unit ÷ |entry − stop|.
-Open trades (no exit price) and trades without a stop have no R.
+- Gross P&L = (exit − entry) × size, reversed for shorts. **P&L = gross − fees.**
+- R = P&L ÷ (|entry − stop| × size), so fees count against R too.
+- A trade is open until it has both an exit price and an exit date. Open trades and trades without a stop have no R.
+- Closed trades count on their **exit date** in the equity curve, calendar and stats.
+
+## Frontend (React + Vite)
+
+```bash
+cd frontend
+npm install
+npm run dev     # http://localhost:5173 (proxies /api to the backend on :8000)
+npm test
+```

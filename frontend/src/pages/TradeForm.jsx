@@ -6,7 +6,7 @@ import { fmtMoney, fmtR, fmtSignedMoney, pnlClass } from '../lib/format.js'
 import { tradeMetrics } from '../lib/tradeMath.js'
 
 const EMOTIONS = ['calm', 'confident', 'neutral', 'excited', 'anxious', 'fearful', 'fomo', 'greedy', 'frustrated', 'revenge']
-const NUMBER_FIELDS = ['entry_price', 'exit_price', 'position_size', 'stop_loss', 'take_profit']
+const NUMBER_FIELDS = ['entry_price', 'exit_price', 'position_size', 'stop_loss', 'take_profit', 'fees']
 
 const emptyForm = () => ({
   symbol: '',
@@ -16,7 +16,9 @@ const emptyForm = () => ({
   position_size: '',
   stop_loss: '',
   take_profit: '',
-  trade_date: todayIso(),
+  fees: '',
+  entry_date: todayIso(),
+  exit_date: '',
   strategy: '',
   notes: '',
   emotion_before: '',
@@ -44,6 +46,16 @@ export default function TradeForm() {
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
+  // Exit price and exit date go together: filling the price defaults the date to the entry day.
+  const setExitPrice = (e) => {
+    const value = e.target.value
+    setForm((f) => ({
+      ...f,
+      exit_price: value,
+      exit_date: value && !f.exit_date ? f.entry_date : f.exit_date,
+    }))
+  }
+
   const preview = tradeMetrics({
     side: form.side,
     entry: num(form.entry_price),
@@ -51,6 +63,7 @@ export default function TradeForm() {
     size: num(form.position_size),
     stop: num(form.stop_loss),
     takeProfit: num(form.take_profit),
+    fees: num(form.fees),
   })
 
   const submit = async (e) => {
@@ -59,6 +72,8 @@ export default function TradeForm() {
     setError(null)
     const payload = { ...form }
     for (const k of NUMBER_FIELDS) payload[k] = num(form[k])
+    payload.fees ??= 0
+    payload.exit_date = form.exit_date || null
     try {
       await (id ? api.updateTrade(id, payload) : api.createTrade(payload))
       navigate('/trades')
@@ -94,20 +109,30 @@ export default function TradeForm() {
               </div>
             </label>
             <label>
-              Date
-              <input type="date" value={form.trade_date} onChange={set('trade_date')} required />
-            </label>
-            <label>
               Position size
               <input type="number" step="any" min="0" value={form.position_size} onChange={set('position_size')} required />
+            </label>
+            <label>
+              Entry date
+              <input type="date" value={form.entry_date} onChange={set('entry_date')} required />
             </label>
             <label>
               Entry price
               <input type="number" step="any" min="0" value={form.entry_price} onChange={set('entry_price')} required />
             </label>
             <label>
+              Exit date
+              <input
+                type="date"
+                value={form.exit_date}
+                onChange={set('exit_date')}
+                min={form.entry_date}
+                required={form.exit_price !== ''}
+              />
+            </label>
+            <label>
               Exit price <span className="hint">empty = open</span>
-              <input type="number" step="any" min="0" value={form.exit_price} onChange={set('exit_price')} />
+              <input type="number" step="any" min="0" value={form.exit_price} onChange={setExitPrice} />
             </label>
             <label>
               Stop loss
@@ -116,6 +141,10 @@ export default function TradeForm() {
             <label>
               Take profit
               <input type="number" step="any" min="0" value={form.take_profit} onChange={set('take_profit')} />
+            </label>
+            <label>
+              Fees <span className="hint">total, both sides</span>
+              <input type="number" step="any" min="0" value={form.fees} onChange={set('fees')} placeholder="0" />
             </label>
             <label>
               Strategy
@@ -151,7 +180,11 @@ export default function TradeForm() {
         <aside className="card form-side">
           <h2>Preview</h2>
           <dl className="preview">
-            <dt>P&L</dt>
+            <dt>Gross P&L</dt>
+            <dd className={pnlClass(preview.grossPnl)}>{fmtSignedMoney(preview.grossPnl)}</dd>
+            <dt>Fees</dt>
+            <dd>{num(form.fees) ? `−${fmtMoney(num(form.fees))}` : fmtMoney(0)}</dd>
+            <dt>Net P&L</dt>
             <dd className={pnlClass(preview.pnl)}>{fmtSignedMoney(preview.pnl)}</dd>
             <dt>R-multiple</dt>
             <dd className={pnlClass(preview.rMultiple)}>{fmtR(preview.rMultiple)}</dd>
