@@ -126,6 +126,18 @@ label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
 }
 
+.breakdown-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.25rem; }
+.breakdown-grid .card { margin: 0 0 1.25rem; }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
+.card-head h2 { margin: 0; }
+.breakdown th, .breakdown td { padding: 0.55rem 0.6rem; }
+.breakdown th:first-child, .breakdown td:first-child { padding-left: 0; }
+.breakdown th:last-child, .breakdown td:last-child { padding-right: 0; }
+.breakdown .tag { text-transform: capitalize; font-weight: 500; }
+.winrate { display: flex; align-items: center; gap: 0.5rem; }
+.winrate-bar { width: 64px; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.winrate-bar span { display: block; height: 100%; background: var(--accent); }
+
 .calendar-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
 .calendar-head h3 { min-width: 9rem; text-align: center; }
 .calendar-total { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -176,6 +188,8 @@ tbody tr:hover { background: var(--surface-2); }
   border: none;
   cursor: pointer;
 }
+.segmented button.active { background: var(--surface-2); color: var(--text); }
+.segmented.small button { padding: 0.25rem 0.7rem; font-size: 0.8rem; }
 .segmented button.active.long { background: rgb(var(--pos-rgb) / 0.18); color: var(--pos); }
 .segmented button.active.short { background: rgb(var(--neg-rgb) / 0.18); color: var(--neg); }
 .preview { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem 1rem; margin: 0 0 1.25rem; }
@@ -187,6 +201,8 @@ tbody tr:hover { background: var(--surface-2); }
   .topbar { padding: 0.75rem 1rem; gap: 0.75rem; flex-wrap: wrap; }
   .container { padding: 1.25rem 1rem 3rem; }
   .trade-form { grid-template-columns: 1fr; }
+  .breakdown-grid { grid-template-columns: 1fr; }
+  .card-head { flex-wrap: wrap; }
   .form-side { position: static; }
   .filters { width: 100%; }
   .filters input { width: auto; flex: 1; }

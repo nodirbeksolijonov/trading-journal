@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import BreakdownTable from '../components/BreakdownTable.jsx'
 import EquityChart from '../components/EquityChart.jsx'
 import PnlCalendar from '../components/PnlCalendar.jsx'
 import StatCard from '../components/StatCard.jsx'
@@ -9,6 +10,7 @@ import { fmtPct, fmtR, fmtSignedMoney, pnlClass } from '../lib/format.js'
 export default function Dashboard() {
   const [stats, setStats] = useState(null)
   const [error, setError] = useState(null)
+  const [emotionWhen, setEmotionWhen] = useState('before')
 
   useEffect(() => {
     api.getStats().then(setStats).catch((e) => setError(e.message))
@@ -55,6 +57,38 @@ export default function Dashboard() {
         <h2>P&L calendar</h2>
         <PnlCalendar daily={stats.daily_pnl} />
       </section>
+
+      <div className="breakdown-grid">
+        <section className="card">
+          <div className="card-head">
+            <h2>Performance by emotion</h2>
+            <div className="segmented small">
+              {['before', 'after'].map((w) => (
+                <button
+                  type="button"
+                  key={w}
+                  className={emotionWhen === w ? 'active' : ''}
+                  onClick={() => setEmotionWhen(w)}
+                >
+                  {w} trade
+                </button>
+              ))}
+            </div>
+          </div>
+          <BreakdownTable
+            rows={emotionWhen === 'before' ? stats.by_emotion_before : stats.by_emotion_after}
+            label="Emotion"
+            emptyLabel="Not logged"
+          />
+        </section>
+
+        <section className="card">
+          <div className="card-head">
+            <h2>Performance by strategy</h2>
+          </div>
+          <BreakdownTable rows={stats.by_strategy} label="Strategy" emptyLabel="No strategy" />
+        </section>
+      </div>
     </>
   )
 }

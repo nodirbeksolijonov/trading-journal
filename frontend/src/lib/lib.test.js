@@ -1,6 +1,29 @@
 import { describe, expect, it } from 'vitest'
 import { buildMonthGrid } from './calendar.js'
+import { fmtMoney, fmtR, fmtShortDate, fmtSignedMoney, pnlClass } from './format.js'
 import { tradeMetrics } from './tradeMath.js'
+
+describe('format', () => {
+  it('never shows a negative zero', () => {
+    for (const v of [-0, -0.001, -1e-16]) {
+      expect(fmtMoney(v)).toBe('$0.00')
+      expect(fmtSignedMoney(v)).toBe('$0.00')
+      expect(fmtR(v)).toBe('0.00R')
+      expect(pnlClass(v)).toBe('')
+    }
+  })
+
+  it('keeps real signs', () => {
+    expect(fmtSignedMoney(-0.01)).toBe('-$0.01')
+    expect(fmtSignedMoney(12.5)).toBe('+$12.50')
+    expect(fmtR(-1)).toBe('-1.00R')
+  })
+
+  it('formats short dates without timezone shifts', () => {
+    expect(fmtShortDate('2026-10-01')).toBe('Oct 1')
+    expect(fmtShortDate('2026-01-31', true)).toBe('Jan 31, 2026')
+  })
+})
 
 describe('tradeMetrics', () => {
   it('matches the backend for a long winner', () => {

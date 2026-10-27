@@ -1,7 +1,12 @@
 import pytest
 
-from app.metrics import calc_pnl, calc_r_multiple, validate_levels
+from app.metrics import calc_pnl, calc_r_multiple, round2, validate_levels
 from app.models import Side
+
+
+def test_round2_never_returns_negative_zero():
+    assert str(round2(-0.001)) == "0.0"
+    assert round2(-0.006) == -0.01
 
 
 def test_long_pnl_and_r():

@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
-from app.metrics import calc_pnl, calc_r_multiple, validate_levels
+from app.metrics import calc_pnl, calc_r_multiple, round2, validate_levels
 from app.models import Side
 
 
@@ -54,13 +54,13 @@ class TradeRead(TradeBase):
     @property
     def pnl(self) -> float | None:
         pnl = calc_pnl(self.side, self.entry_price, self.exit_price, self.position_size)
-        return None if pnl is None else round(pnl, 2)
+        return None if pnl is None else round2(pnl)
 
     @computed_field
     @property
     def r_multiple(self) -> float | None:
         r = calc_r_multiple(self.side, self.entry_price, self.exit_price, self.stop_loss)
-        return None if r is None else round(r, 2)
+        return None if r is None else round2(r)
 
 
 class StatsSummary(BaseModel):
@@ -89,7 +89,19 @@ class DailyPnl(BaseModel):
     trades: int
 
 
+class GroupPerformance(BaseModel):
+    key: str | None  # None = trades without this tag
+    trades: int
+    wins: int
+    win_rate: float | None
+    total_pnl: float
+    avg_r: float | None
+
+
 class Stats(BaseModel):
     summary: StatsSummary
     equity_curve: list[EquityPoint]
     daily_pnl: list[DailyPnl]
+    by_strategy: list[GroupPerformance]
+    by_emotion_before: list[GroupPerformance]
+    by_emotion_after: list[GroupPerformance]
