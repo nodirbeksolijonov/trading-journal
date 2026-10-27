@@ -1,5 +1,6 @@
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { fmtMoney, fmtShortDate, fmtSignedMoney, pnlClass } from '../lib/format.js'
+import { formatTick, timeTicks, toTimeSeries } from '../lib/timeScale.js'
 
 function ChartTooltip({ active, payload }) {
   if (!active || !payload?.length) return null
@@ -15,10 +16,11 @@ function ChartTooltip({ active, payload }) {
 
 export default function EquityChart({ points }) {
   if (!points.length) return <p className="muted empty">No closed trades yet.</p>
-  const data = points.map((p, i) => ({ ...p, n: i + 1 }))
+
+  // x is a timestamp, so gaps between trades show up as real distance on the axis.
+  const { data, domain } = toTimeSeries(points)
+  const { ticks, unit } = timeTicks(...domain)
   const spansYears = points[0].date.slice(0, 4) !== points.at(-1).date.slice(0, 4)
-  // One point per trade, so the same date can repeat; minTickGap keeps labels from overlapping.
-  const tickLabel = (i) => (data[i] ? fmtShortDate(data[i].date, spansYears) : '')
 
   return (
     <ResponsiveContainer width="100%" height={280}>
@@ -31,9 +33,13 @@ export default function EquityChart({ points }) {
         </defs>
         <CartesianGrid stroke="var(--border)" vertical={false} />
         <XAxis
-          dataKey="n"
-          tickFormatter={(n) => tickLabel(n - 1)}
-          minTickGap={32}
+          dataKey="t"
+          type="number"
+          scale="time"
+          domain={domain}
+          ticks={ticks}
+          tickFormatter={(ms) => formatTick(ms, unit, spansYears)}
+          minTickGap={24}
           stroke="var(--muted)"
           tickLine={false}
           axisLine={false}
