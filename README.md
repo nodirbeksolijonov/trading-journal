@@ -25,6 +25,14 @@ It is a review tool, not a trading tool: there are no signals, no broker connect
 |---|---|
 | ![Trade list](docs/screenshots/trades.png) | ![New trade form](docs/screenshots/form.png) |
 
+## Performance analytics
+
+Below the equity curve, the P&L calendar shows each day's result at a glance, and the breakdown tables group closed trades by strategy and by emotion. Each row shows the number of trades, win rate, total net P&L and average R, sorted from best to worst total P&L. Switch the emotion table between *before* and *after* the trade to compare the state of mind you entered with against how you felt about the result. Emotions and strategies are grouped without regard to case, and untagged trades get their own row.
+
+This is where patterns show up, such as one setup carrying most of your profit, or trades taken while anxious or chasing (FOMO) losing more often.
+
+![P&L calendar and performance by emotion and strategy](docs/screenshots/analytics.png)
+
 ## Tech stack
 
 | Layer | Technology |
